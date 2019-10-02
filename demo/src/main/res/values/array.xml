@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="maplayer_name">
+        <item>MapLayerTest</item>
+        <item>BitmapLayerTest</item>
+        <item>LocationLayerTest</item>
+        <item>MarkLayerTest</item>
+        <item>RouteLayerTest</item>
+        <item>TestActivity</item>
+    </array>
+</resources>
