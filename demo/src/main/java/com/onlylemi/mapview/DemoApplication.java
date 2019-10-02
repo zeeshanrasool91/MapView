@@ -3,8 +3,8 @@ package com.onlylemi.mapview;
 import android.app.Application;
 import android.content.Context;
 
-//import com.squareup.leakcanary.LeakCanary;
-//import com.squareup.leakcanary.RefWatcher;
+import leakcanary.LeakCanary;
+
 
 /**
  * DemoApplication
@@ -13,18 +13,15 @@ import android.content.Context;
  * @time: 2016-05-14 12:07
  */
 public class DemoApplication extends Application {
-
     private static Context context;
-    //private RefWatcher refWatcher;
+
+    public static Context getContext() {
+        return context;
+    }
 
     @Override
     public void onCreate() {
         super.onCreate();
         context = getApplicationContext();
-        //refWatcher = LeakCanary.install(this);
-    }
-
-    public static Context getContext() {
-        return context;
     }
 }
