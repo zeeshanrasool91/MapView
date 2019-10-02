@@ -7,11 +7,13 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.onlylemi.mapview.library.MapView;
 import com.onlylemi.mapview.library.MapViewListener;
@@ -21,13 +23,21 @@ import java.io.IOException;
 
 public class LocationLayerTestActivity extends AppCompatActivity implements SensorEventListener {
 
+    private static final String TAG = "LocationLayer";
     private MapView mapView;
-
     private LocationLayer locationLayer;
-
     private boolean openSensor = false;
-
     private SensorManager sensorManager;
+
+    private Sensor mAccelerometer;
+    private Sensor mMagnetometer;
+    private float[] mLastAccelerometer = new float[3];
+    private float[] mLastMagnetometer = new float[3];
+    private boolean mLastAccelerometerSet = false;
+    private boolean mLastMagnetometerSet = false;
+    private float[] mR = new float[9];
+    private float[] mOrientation = new float[3];
+    private float mCurrentDegree = 0f;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,6 +72,10 @@ public class LocationLayerTestActivity extends AppCompatActivity implements Sens
 
 
         sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        if (sensorManager != null) {
+            mAccelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            mMagnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        }
     }
 
     @Override
@@ -101,8 +115,10 @@ public class LocationLayerTestActivity extends AppCompatActivity implements Sens
                         sensorManager.unregisterListener(this);
                     } else {
                         item.setTitle("Close Sensor");
-                        sensorManager.registerListener(this, sensorManager.getDefaultSensor
-                                (Sensor.TYPE_ORIENTATION), SensorManager.SENSOR_DELAY_NORMAL);
+                        //Old Approach Depreceated
+                        //sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION), SensorManager.SENSOR_DELAY_NORMAL);
+                        sensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+                        sensorManager.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_NORMAL);
                     }
                     openSensor = !openSensor;
                     break;
@@ -113,7 +129,7 @@ public class LocationLayerTestActivity extends AppCompatActivity implements Sens
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
+    /*@Override
     public void onSensorChanged(SensorEvent event) {
         if (mapView.isMapLoadFinish() && openSensor) {
             float mapDegree = 0; // the rotate between reality map to northern
@@ -121,22 +137,51 @@ public class LocationLayerTestActivity extends AppCompatActivity implements Sens
             if (event.sensor.getType() == Sensor.TYPE_ORIENTATION) {
                 degree = event.values[0];
             }
-
+            Log.d("ZEE", String.valueOf(degree));
             locationLayer.setCompassIndicatorCircleRotateDegree(-degree);
-            locationLayer.setCompassIndicatorArrowRotateDegree(mapDegree + mapView
-                    .getCurrentRotateDegrees() + degree);
+            locationLayer.setCompassIndicatorArrowRotateDegree(mapDegree + mapView.getCurrentRotateDegrees() + degree);
             mapView.refresh();
         }
-    }
+    }*/
+
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
+    protected void onResume() {
+        super.onResume();
+    }
+
+    protected void onPause() {
+        super.onPause();
         sensorManager.unregisterListener(this);
+        sensorManager.unregisterListener(this, mAccelerometer);
+        sensorManager.unregisterListener(this, mMagnetometer);
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor == mAccelerometer) {
+            System.arraycopy(event.values, 0, mLastAccelerometer, 0, event.values.length);
+            mLastAccelerometerSet = true;
+        } else if (event.sensor == mMagnetometer) {
+            System.arraycopy(event.values, 0, mLastMagnetometer, 0, event.values.length);
+            mLastMagnetometerSet = true;
+        }
+        if (mLastAccelerometerSet && mLastMagnetometerSet) {
+            SensorManager.getRotationMatrix(mR, null, mLastAccelerometer, mLastMagnetometer);
+            SensorManager.getOrientation(mR, mOrientation);
+            float azimuthInRadians = mOrientation[0];
+            float azimuthInDegress = (float) (Math.toDegrees(azimuthInRadians) + 360) % 360;
+            if (mapView.isMapLoadFinish() && openSensor) {
+                float mapDegree = 0; // the rotate between reality map to northern
+                locationLayer.setCompassIndicatorCircleRotateDegree(-azimuthInDegress);
+                locationLayer.setCompassIndicatorArrowRotateDegree(mapDegree + mapView.getCurrentRotateDegrees() + azimuthInDegress);
+                mapView.refresh();
+            }
+            mCurrentDegree = -azimuthInDegress;
+        }
     }
 }

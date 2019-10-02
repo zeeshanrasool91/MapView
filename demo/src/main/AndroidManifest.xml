@@ -38,6 +38,10 @@
             android:name=".RouteLayerTestActivity"
             android:label="RouteLayerTest">
         </activity>
+        <activity
+            android:name=".TestActivity"
+            android:label="TestActivity">
+        </activity>
     </application>
 
 </manifest>
